@@ -1,0 +1,32 @@
+Package: jointCompRisk
+Type: Package
+Title: Joint Inference for Competing Risks Data Using Multiple Endpoints 
+Version: 0.1.0
+Author: Jiyang Wen/Wenqing Zhang
+Maintainer: Wenqing Zhang <wzhan115@jh.edu>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    boot,
+    cmprsk,
+    dplyr,
+    lcmix,
+    mstate,
+    rms,
+    survival,
+    survminer,
+    survRM2
+RoxygenNote: 7.3.2
+Depends: 
+    R (>= 2.10)
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+URL: https://github.com/cathyzzzhang/jointCompRisk
+BugReports: https://github.com/cathyzzzhang/jointCompRisk/issues
