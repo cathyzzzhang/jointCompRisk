@@ -14,6 +14,7 @@ Imports:
     cmprsk,
     dplyr,
     lcmix,
+    magrittr,
     mstate,
     rms,
     survival,
@@ -21,7 +22,7 @@ Imports:
     survRM2
 RoxygenNote: 7.3.2
 Depends: 
-    R (>= 2.10)
+    R (>= 3.5)
 Suggests: 
     knitr,
     rmarkdown,

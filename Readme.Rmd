@@ -1,0 +1,137 @@
+---
+title: "Readme"
+output: html_document
+date: "2025-01-06"
+---
+
+# jointCompRisk
+
+## Overview
+The jointCompRisk R package provides a suite of competing risks analysis tools for use in clinical research or other fields where multiple event types are of interest. In particular, this package includes:
+
+**Part I**: Standard Cumulative Incidence Function (CIF) inference for competing events.
+**Part II**: Weighted CIF methods for incorporating weighted survival times, allowing different event types (e.g., discharge vs. death) to have distinct clinical interpretations.
+
+To demonstrate the workflow without disclosing private data, jointCompRisk also ships with two dummy datasets (`dummy_actt_ch` and `dummy_actt_long`) and a data preparation function `prepare_actt_data()` that mimics the real cleaning and merging steps used in clinical trial analyses.
+
+## Key Features
+**1. Standard CIF Analysis**
+
+`auc.func()`: Compute area under a CIF curve.
+`auc.var.joint()`: Calculate an estimate of a combined measure Ψ and its variance.
+`table1()`: Generate a 3x4 matrix comparing two groups (treatment vs. control) for CIF-based measures.
+
+**2. Weighted CIF Analysis**
+`w_surv()`: Core function for computing the weighted survival function.
+`auc.ws()` & `sd.auc.ws()`: Calculate the weighted area under the curve and its standard error.
+`table_wr()`: Summarize weighted AUC metrics (group difference, confidence intervals, p-values).
+
+**3. Data Preparation and Dummy Data**
+`prepare_actt_data()`: Illustrates how to clean & merge data into the competing risks format for both CIF and weighted CIF.
+`dummy_actt_ch`, `dummy_actt_long`: Synthetic data frames for demonstration.
+
+## Installation
+You can install `jointCompRisk` directly from GitHub using devtools:
+```{r}
+install.packages("devtools")
+devtools::install_github("cathyzzzhang/jointCompRisk")
+
+library(jointCompRisk)
+```
+
+## Getting Started
+#### Load and Explore Dummy Data
+```{r}
+# The package includes dummy data for illustration
+data("dummy_actt_ch")
+data("dummy_actt_long")
+
+head(dummy_actt_ch)
+head(dummy_actt_long)
+```
+These data frames have synthetic patient-level records resembling real-world trial data.
+
+#### Prepare Data for Analysis
+`prepare_actt_data()` demonstrates how the package merges and cleans data for standard and weighted CIF. In a real scenario, you would adapt your own data to have similar columns (TTRECOV, TTDEATH, etime, wU, etc.) before calling the analysis functions.
+```{r}
+# Creates a list of data frames for Part I and Part II analyses
+res_list <- prepare_actt_data()
+names(res_list) 
+```
+`res_list$data.w` is for standard CIF analysis (Part I), 
+while `res_list$data.ws.death` and `res_list$data.ws.discharge` are for weighted CIF (Part II). Also, subsets like trt1, trt0 (treatment vs. control) are included.
+
+#### Part I: Standard CIF Analysis
+##### Table for CIF-Based Measures(`table1`)
+
+You can estimate and compare cumulative incidence-based measures between two groups (e.g., trt1 and trt0) using table1(). For instance:
+
+```{r}
+res_table <- table1(
+  data1 = res_list$trt1,
+  data2 = res_list$trt0,
+  tau   = 15,
+  a     = 0,  
+  b     = 1, 
+  c     = 0 
+)
+res_table
+```
+
+This outputs a 3×4 matrix:
+
+Row 1: Group 1 estimate (with 95% CI).
+Row 2: Group 2 estimate (with 95% CI).
+Row 3: Absolute difference and p-value.
+
+#### Part II: Weighted CIF Analysis 
+##### Table for Weighted AUC Measures(`table_wr`)
+If your study involves weighting time spent in different health states (e.g., partial vs. full recovery, mild vs. severe symptoms), use the weighted functions:
+```{r}
+wr_table <- table_wr(
+  data1 = res_list$trt1.death,
+  data2 = res_list$trt0.death,
+  eta   = 2,
+  tau   = 15
+)
+wr_table
+```
+
+Again, you’ll get a 3×4 matrix showing group estimates and the difference with confidence intervals and p-value. If you want to analyze “discharge” as the event, set `eta` = 1 and pass `res_list$trt1.discharge` / `res_list$trt0.discharge`.
+
+## Reference and Code Source
+Jiyang Wen, Chen Hu, Mei-Cheng Wang, Joint Inference for Competing Risks Data Using Multiple Endpoints, Biometrics, Volume 79, Issue 3, September 2023, Pages 1635–1645, https://doi.org/10.1111/biom.13752
+
+## Contributing
+### Bug Reports: 
+Submit an issue via GitHub Issues
+### Contact: 
+Wenqing Zhang <wzhan115@jh.edu>
+
+
+## Quick Start
+#### Install
+```{r}
+devtools::install_github("cathyzzzhang/jointCompRisk")
+```
+
+#### Load
+```{r}
+library(jointCompRisk)
+```
+
+#### Prepare Data
+```{r}
+data_list <- prepare_actt_data()
+```
+
+#### Standard CIF
+```{r}
+table1(data_list$trt1, data_list$trt0, tau=15, a=0, b=1, c=0)
+```
+
+#### Weighted CIF
+```{r}
+table_wr(data_list$trt1.death, data_list$trt0.death, eta=2, tau=15)
+```
+

@@ -9,7 +9,7 @@ set.seed(123) # For reproducibility
 #    (based on the real structure you've shown)
 # ------------------------------------------------------------------
 N <- 15  # small example number of patients
-dummy_actt_ch <- data.frame(
+dummy_ch <- data.frame(
   USUBJID  = paste0("COV.DUMMY", 700 + seq_len(N)),
   TRTP     = sample(c("Remdesivir", "Placebo"), N, replace=TRUE),
   SEX      = sample(c("M", "F"), N, replace=TRUE),
@@ -60,7 +60,7 @@ dummy_actt_ch <- data.frame(
 # ------------------------------------------------------------------
 # We'll pretend each patient has some repeated measurements over time
 M <- 50  # total long-format rows
-dummy_actt_long <- data.frame(
+dummy_long <- data.frame(
   USUBJID    = sample(dummy_actt_ch$USUBJID, M, replace=TRUE),
   ARM        = sample(c("Placebo", "Remdesivir"), M, replace=TRUE),
   ACTARM     = sample(c("Placebo", "Remdesivir"), M, replace=TRUE),
@@ -81,4 +81,4 @@ dummy_actt_long <- data.frame(
 # ------------------------------------------------------------------
 # 4) Save them in the data/ folder as .rda files
 # ------------------------------------------------------------------
-usethis::use_data(dummy_actt_ch, dummy_actt_long, overwrite = TRUE)
+usethis::use_data(dummy_ch, dummy_long, overwrite = TRUE)

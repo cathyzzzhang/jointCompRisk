@@ -15,40 +15,81 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 library(jointCompRisk)
+library(dplyr)
 ```
 
 ```{r}
 # Load the dummy datasets
-data("dummy_actt_ch")
-data("dummy_actt_long")
+data("dummy_ch")
+data("dummy_long")
 
-head(dummy_actt_ch)
-head(dummy_actt_long)
+head(dummy_ch)
+head(dummy_long)
+```
+### Part I: CIF
+```{r}
+res_part1 <- prep_data_cif()
+names(res_part1)
+str(res_part1$data.w)
 ```
 
 ```{r}
-res_list <- prepare_actt_data()
-names(res_list)
-str(res_list$data.w)
-```
-
-```{r}
-# Example: day 15, measure with b=1, c=0
 table1(
-  data1 = res_list$trt1,
-  data2 = res_list$trt0,
+  data1 = res_part1$trt1,
+  data2 = res_part1$trt0,
   tau   = 15,
   a = 0, b = 1, c = 0
 )
 ```
 ### Part II: Weighted CIF
+
+```{r}
+res_part2 <- prep_data_wrt_cif(
+  part1_output = res_part1
+)
+```
+
 ```{r}
 # Weighted analysis, event type = 2 (death), tau = 15
 table_wr(
-  data1 = res_list$trt1.death,
-  data2 = res_list$trt0.death,
+  data1 = res_part2$trt1.death,
+  data2 = res_part2$trt0.death,
   eta   = 2,
   tau   = 15
 )
+```
+### Or user supplied data:
+```{r}
+# or user supplied data
+# my_result <- prep_data(
+#   path_ch   = "my_wide_data.csv",
+#   path_long = "my_long_data.csv",
+#   col_map = list(
+#     ttrecov   = "myTTRECOV",
+#     ttdeath   = "myTTDEATH",
+#     ordscr_bs = "myOrdscrBS",
+#     reccnsr   = "myRECCNSR",
+#     dthcnsr   = "myDTHCNSR",
+#     trt       = "myTRT",
+#     adyc      = "MYADYC",
+#     ordscor   = "MYORDSCOR"
+#   )
+# )
+# 
+# # Standard CIF analysis (Part I)
+# table1(
+#   data1 = my_result$trt1,
+#   data2 = my_result$trt0,
+#   tau   = 15,
+#   a = 0, b = 1, c = 0
+# )
+# 
+# # Weighted CIF analysis (Part II)
+# table_wr(
+#   data1 = my_result$trt1.death,
+#   data2 = my_result$trt0.death,
+#   eta   = 2, # for death
+#   tau   = 15
+# )
 ```
 
