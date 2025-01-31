@@ -2,39 +2,45 @@
 % Please edit documentation in R/prep_data_cif.R
 \name{prep_data_cif}
 \alias{prep_data_cif}
-\title{Prepare Data (Part I: Standard CIF Only)}
+\title{Prepare Data for Standard CIF}
 \usage{
 prep_data_cif(
-  path_ch = NULL,
-  col_map = list(ttrecov = "TTRECOV", ttdeath = "TTDEATH", reccnsr = "RECCNSR", dthcnsr =
-    "DTHCNSR", ordscr_bs = "ordscr_bs", trt = "trt")
+  data,
+  ID = "USUBJID",
+  TimeToRecovery = "TTRECOV",
+  TimeToDeath = "TTDEATH",
+  Recov_Censoring = "RECCNSR",
+  Death_Censoring = "DTHCNSR",
+  BaselineScore = "ordscr_bs",
+  Treatment = "trt"
 )
 }
 \arguments{
-\item{path_ch}{(Optional) Path to the wide-format CSV. If \code{NULL},
-the built-in dummy data (\code{dummy_actt_ch}) is used.}
+\item{data}{A data frame with columns for ID, time to recovery, time to death,
+recovery censor, death censor, baseline score, and treatment indicator.}
 
-\item{col_map}{Named list mapping columns in the wide dataset to needed variables:
-\describe{
-  \item{\code{ttrecov}}{Time to recovery.}
-  \item{\code{ttdeath}}{Time to death.}
-  \item{\code{reccnsr}}{Indicator for censored/not for recovery.}
-  \item{\code{dthcnsr}}{Indicator for censored/not for death.}
-  \item{\code{ordscr_bs}}{Baseline ordinal score.}
-  \item{\code{trt}}{Treatment group. (0=control, 1=treatment)}
-}}
+\item{ID}{Name of the patient ID column. Default is "USUBJID".}
+
+\item{TimeToRecovery}{Name of the time-to-recovery column. Default "TTRECOV".}
+
+\item{TimeToDeath}{Name of the time-to-death column. Default "TTDEATH".}
+
+\item{Recov_Censoring}{Name of the recovery-censor column. Default "RECCNSR" (0=event,1=censor).}
+
+\item{Death_Censoring}{Name of the death-censor column. Default "DTHCNSR" (0=event,1=censor).}
+
+\item{BaselineScore}{Name of the baseline ordinal column. Default "ordscr_bs".}
+
+\item{Treatment}{Name of the treatment indicator column (0=control,1=treatment). Default "trt".}
 }
 \value{
 A list with:
-\itemize{
-  \item \code{df_ch}: the cleaned wide dataframe.
-  \item \code{data.w}: the final dataset for standard CIF with columns
-        (\code{USUBJID, etime, estatus, etype2, trt}).
-  \item \code{trt1}: subset of \code{data.w} where \code{trt==1}.
-  \item \code{trt0}: subset of \code{data.w} where \code{trt==0}.
-}
+  \itemize{
+    \item \code{data.w}: The processed data frame with columns \code{cn, etime, estatus, etype2, Treatment}.
+    \item \code{Treatment}: Subset of \code{data.w} where \code{Treatment==1}.
+    \item \code{Control}: Subset of \code{data.w} where \code{Treatment==0}.
+  }
 }
 \description{
-This function reads in (or uses built-in) wide-format data and
-prepares it for standard CIF analysis (Part I).
+Cleans and prepares a single dataset for standard (competing risks) CIF analysis.
 }

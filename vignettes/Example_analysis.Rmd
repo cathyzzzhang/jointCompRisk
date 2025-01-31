@@ -10,86 +10,69 @@ vignette: >
 ### Part I: CIF Inference
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
 library(jointCompRisk)
+library(readr)
 library(dplyr)
+library(survival)
 ```
 
 ```{r}
-# Load the dummy datasets
-data("dummy_ch")
-data("dummy_long")
-
-head(dummy_ch)
-head(dummy_long)
-```
-### Part I: CIF
-```{r}
-res_part1 <- prep_data_cif()
-names(res_part1)
-str(res_part1$data.w)
+raw <- read_csv("DUMMY_CH.csv")
+long <- read.csv("DUMMY_LONG.csv")
 ```
 
 ```{r}
-table1(
-  data1 = res_part1$trt1,
-  data2 = res_part1$trt0,
-  tau   = 15,
-  a = 0, b = 1, c = 0
+# 1) Standard CIF:
+mydata_std <- prep_data_cif(
+  data             = raw,
+  ID               = "ID",
+  TimeToRecovery   = "TimeToRecovery",
+  TimeToDeath      = "TimeToDeath",
+  Recov_Censoring  = "RecoveryCensoringIndicator",
+  Death_Censoring  = "DeathCensoringIndicator",
+  BaselineScore    = "BaselineScore",
+  Treatment        = "Treatment"
 )
+
+
+res_std <- do_cif_analysis(mydata_std, tau=29)
+res_std$RMGT
+res_std$RMLT
+res_std$Net
 ```
-### Part II: Weighted CIF
 
 ```{r}
-res_part2 <- prep_data_wrt_cif(
-  part1_output = res_part1
-)
-```
+# Prepare weighted CIF data with updated variable names
+prepped_w <- prep_data_weighted_cif(
+  data_main = raw,
+  data_long = long,
 
-```{r}
-# Weighted analysis, event type = 2 (death), tau = 15
-table_wr(
-  data1 = res_part2$trt1.death,
-  data2 = res_part2$trt0.death,
-  eta   = 2,
-  tau   = 15
+  wID_main              = "ID",
+  wTimeToRecovery_main  = "TimeToRecovery",
+  wTimeToDeath_main     = "TimeToDeath",
+  wRecov_Censoring_main = "RecoveryCensoringIndicator",
+  wDeath_Censoring_main = "DeathCensoringIndicator",
+  wBaselineScore_main   = "BaselineScore",
+  wTreatment_main       = "Treatment",
+
+  wID_long              = "PersonID",
+  wADY_long             = "RelativeDay",
+  wScore_long           = "OrdinalScore",
+
+  wStates_death         = c(4,5,6,7), 
+  wWeights_death        = c(2,1.5,1,0.5),
+  wStates_discharge     = c(4,5,6,7),
+  wWeights_discharge    = c(0.5,1,1.5,2)
 )
-```
-### Or user supplied data:
-```{r}
-# or user supplied data
-# my_result <- prep_data(
-#   path_ch   = "my_wide_data.csv",
-#   path_long = "my_long_data.csv",
-#   col_map = list(
-#     ttrecov   = "myTTRECOV",
-#     ttdeath   = "myTTDEATH",
-#     ordscr_bs = "myOrdscrBS",
-#     reccnsr   = "myRECCNSR",
-#     dthcnsr   = "myDTHCNSR",
-#     trt       = "myTRT",
-#     adyc      = "MYADYC",
-#     ordscor   = "MYORDSCOR"
-#   )
-# )
-# 
-# # Standard CIF analysis (Part I)
-# table1(
-#   data1 = my_result$trt1,
-#   data2 = my_result$trt0,
-#   tau   = 15,
-#   a = 0, b = 1, c = 0
-# )
-# 
-# # Weighted CIF analysis (Part II)
-# table_wr(
-#   data1 = my_result$trt1.death,
-#   data2 = my_result$trt0.death,
-#   eta   = 2, # for death
-#   tau   = 15
-# )
+
+# Run Weighted CIF analysis at tau=15
+res_w15 <- do_weighted_cif_analysis(prepped_w, tau=15)
+res_w15$WRMLT
+res_w15$WRMGT
+
+# Run Weighted CIF analysis at tau=29
+res_w29 <- do_weighted_cif_analysis(prepped_w, tau=29)
+res_w29$WRMLT
+res_w29$WRMGT
 ```
 
