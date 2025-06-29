@@ -17,8 +17,8 @@ library(survival)
 ```
 
 ```{r}
-raw <- read_csv("DUMMY_CH.csv")
-long <- read.csv("DUMMY_LONG.csv")
+raw <- read.csv("main.csv")
+long <- read.csv("long.csv")
 ```
 
 ```{r}
@@ -30,12 +30,11 @@ mydata_std <- prep_data_cif(
   TimeToDeath      = "TimeToDeath",
   Recov_Censoring  = "RecoveryCensoringIndicator",
   Death_Censoring  = "DeathCensoringIndicator",
-  BaselineScore    = "BaselineScore",
   Treatment        = "Treatment"
 )
 
 
-res_std <- do_cif_analysis(mydata_std, tau=29)
+res_std <- do_cif_analysis(mydata_std, tau=15)
 res_std$RMGT
 res_std$RMLT
 res_std$Net
@@ -52,9 +51,9 @@ prepped_w <- prep_data_weighted_cif(
   wTimeToDeath_main     = "TimeToDeath",
   wRecov_Censoring_main = "RecoveryCensoringIndicator",
   wDeath_Censoring_main = "DeathCensoringIndicator",
-  wBaselineScore_main   = "BaselineScore",
   wTreatment_main       = "Treatment",
-
+  wBaselineScore_main   = "BaselineScore",
+  
   wID_long              = "PersonID",
   wADY_long             = "RelativeDay",
   wScore_long           = "OrdinalScore",

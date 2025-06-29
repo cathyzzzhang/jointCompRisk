@@ -1,17 +1,13 @@
-# PART A) STANDARD CIF
-# ====================================================================
-
 #' @title Prepare Data for Standard CIF
 #' @description Cleans and prepares a single dataset for standard (competing risks) CIF analysis.
 #'
 #' @param data A data frame with columns for ID, time to recovery, time to death,
-#'   recovery censor, death censor, baseline score, and treatment indicator.
+#'   recovery censor, death censor, and treatment indicator.
 #' @param ID Name of the patient ID column. Default is "USUBJID".
 #' @param TimeToRecovery Name of the time-to-recovery column. Default "TTRECOV".
 #' @param TimeToDeath Name of the time-to-death column. Default "TTDEATH".
 #' @param Recov_Censoring Name of the recovery-censor column. Default "RECCNSR" (0=event,1=censor).
 #' @param Death_Censoring Name of the death-censor column. Default "DTHCNSR" (0=event,1=censor).
-#' @param BaselineScore Name of the baseline ordinal column. Default "ordscr_bs".
 #' @param Treatment Name of the treatment indicator column (0=control,1=treatment). Default "trt".
 #'
 #' @return A list with:
@@ -29,28 +25,34 @@ prep_data_cif <- function(
     TimeToDeath = "TTDEATH",
     Recov_Censoring = "RECCNSR",
     Death_Censoring = "DTHCNSR",
-    BaselineScore = "ordscr_bs",
     Treatment = "trt"
 ){
+  # Exclude zero survival times
   cn.t0 <- which(data[[TimeToRecovery]] == 0 | data[[TimeToDeath]] == 0)
-  cn.noob <- which(is.na(data[[BaselineScore]]))
 
+  # Handle discharge-to-die cases
   cn.dtd <- which(data[[Recov_Censoring]] == 0 & data[[Death_Censoring]] == 0)
   if (length(cn.dtd) > 0) {
     id.dtd <- data[[ID]][cn.dtd]
     myMaxTime <- max(data[[TimeToRecovery]], na.rm = TRUE)
-    data[data[[ID]] %in% id.dtd, Recov_Censoring]   <- 1
-    data[data[[ID]] %in% id.dtd, TimeToRecovery]    <- myMaxTime
+    data[data[[ID]] %in% id.dtd, Recov_Censoring] <- 1
+    data[data[[ID]] %in% id.dtd, TimeToRecovery]  <- myMaxTime
   }
 
+  # Create event time
   data$etime <- pmin(data[[TimeToRecovery]], data[[TimeToDeath]])
-  cn.discard <- c(cn.t0, cn.noob)
-  if (length(cn.discard) > 0) {
-    data <- data[-cn.discard, ]
+
+  # Only exclude zero survival times
+  if (length(cn.t0) > 0) {
+    data <- data[-cn.t0, ]
   }
+
+  # Create event status and type
   data$estatus <- 1 - ((data[[Recov_Censoring]] == 1) * (data[[Death_Censoring]] == 1))
   data$etype2 <- 1 * (data[[Recov_Censoring]] == 0 & data[[Death_Censoring]] == 1) +
     2 * (data[[Death_Censoring]] == 0)
+
+  # Select final columns
   data.w <- data %>%
     dplyr::select(
       all_of(ID),
@@ -61,6 +63,7 @@ prep_data_cif <- function(
     )
   colnames(data.w) <- c("cn", "etime", "estatus", "etype2", "Treatment")
 
+  # Split by treatment
   Treatment_sub <- data.w[data.w$Treatment == 1, ]
   Control_sub   <- data.w[data.w$Treatment == 0, ]
 

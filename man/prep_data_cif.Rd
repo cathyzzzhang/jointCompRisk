@@ -11,13 +11,12 @@ prep_data_cif(
   TimeToDeath = "TTDEATH",
   Recov_Censoring = "RECCNSR",
   Death_Censoring = "DTHCNSR",
-  BaselineScore = "ordscr_bs",
   Treatment = "trt"
 )
 }
 \arguments{
 \item{data}{A data frame with columns for ID, time to recovery, time to death,
-recovery censor, death censor, baseline score, and treatment indicator.}
+recovery censor, death censor, and treatment indicator.}
 
 \item{ID}{Name of the patient ID column. Default is "USUBJID".}
 
@@ -28,8 +27,6 @@ recovery censor, death censor, baseline score, and treatment indicator.}
 \item{Recov_Censoring}{Name of the recovery-censor column. Default "RECCNSR" (0=event,1=censor).}
 
 \item{Death_Censoring}{Name of the death-censor column. Default "DTHCNSR" (0=event,1=censor).}
-
-\item{BaselineScore}{Name of the baseline ordinal column. Default "ordscr_bs".}
 
 \item{Treatment}{Name of the treatment indicator column (0=control,1=treatment). Default "trt".}
 }

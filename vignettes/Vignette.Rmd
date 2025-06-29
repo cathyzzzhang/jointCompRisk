@@ -1,0 +1,115 @@
+---
+title: "Competing Risks Survival Analysis with jointCompRisk"
+subtitle: "Methods, Implementation, and Applications"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Competing Risks Survival Analysis with jointCompRisk}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+date: "`r Sys.Date()`"
+Author: Wenqing Zhang
+package: jointCompRisk
+version: "`r packageVersion('jointCompRisk')`"
+bibliography: refs.bib
+
+---
+
+## 1. Introduction
+In clinical studies, patients may experience mutually exclusive outcomes that are equally important for us to understand, such as recovery and death in the case of COVID studies Examining these outcomes in isolation can obscure the treatment’s true effectiveness. To address this limitation, this package implements methods to evaluate multiple cumulative incidence functions (CIFs) simultaneously, providing a complete view of treatment effects across all endpoints. 
+
+Meanwhile, instead of relying solely on hazard ratios, the package reports restricted mean survival times, which translate results into clinically intuitive units—average days gained or lost—so clinicians can judge benefit and risk on the same time scale.
+
+This vignette, which serves as supplemental documentation for the jointCompRisk package, implements the methodology for flexible combination of multiple restricted mean times through “net benefit” calculations that enable benefit-risk assessment tailored to clinical priorities. The package also incorporates weighted analysis approaches that allow investigators to balance different competing events according to stakeholder considerations. 
+
+All methods follow the framework of Wen, Wang & Hu (2023, Statistics in Medicine) and have been validated on R 4.4.1. 
+
+## 2. Sample Data
+
+Throughout this vignette, we simulate a sample dataset that follows the structure of Adaptive COVID-19 Treatment Trials (ACTT), specifically generating a clinical trial dataset of 30 patients with competing risks survival data (recovery vs. death) and longitudinal ordinal severity scores (1-8 scale representing clinical status from mild to severe illness) measured at scheduled visits over a 30-day follow-up period.
+The details of the variables included in each of the dataset can be accessed in the help file of jointCompRisk package, following the code below. 
+
+
+The `main_df` contains one row per participant with baseline demographics, treatment assignment, censoring indicators, and time-to-event outcomes (`TimeToRecovery`, `TimeToDeath`). The `long_df` is in long format with one row per visit per participant. Together, these datasets demonstrate (i) data preparation techniques, (ii) cumulative incidence estimation, and (iii) joint modeling of how baseline characteristics and evolving severity scores predict competing outcomes.
+```{r}
+library(jointCompRisk)
+?main_df
+?long_df
+```
+
+
+```{r}
+head(main_df)
+```
+```{r}
+head(long_df)
+```
+
+## Package Overview:
+The `jointCompRisk` package provides two main analysis workflows:
+1.	Standard CIF Analysis: Traditional competing risk analysis with joint inference
+2.	Weighted CIF Analysis: Severity-weighted competing risks analysis
+
+## Data Requirements:
+### For standard CIF analysis: your dataset should contain at least these columns. 
+1.	Patient ID: Unique identifier for each patient
+2.	Time to Recovery: Time from enrollment to recovery/discharge
+3.	Time to Death: Time from enrollment to death
+4.	Recovery Censoring: Indicator for recovery censoring (0=event, 1=censored)
+5.	Death Censoring: Indicator for death censoring (0=event, 1=censored)
+6.	Treatment: Treatment group indicator (0=control, 1=treatment)
+
+### For Weighted CIF Analysis:
+In addition to the above columns, we need an additional column
+1.	Baseline Score: baseline disease severity
+As well as we need an additional longitudinal dataset with
+1.	Patient ID: matching the main dataset
+2.	Time Point: Days since treatment starts
+3.	Severity Score: Disease severity score at each time point
+
+## Part 1: Standard CIF Analysis:
+Standard CIF analysis provides traditional competing risks analysis with joint inference capabilities.
+
+#### Step 1: Data preparation 
+
+The function `prep_data_cif()` performs essential data preprocessing by first excluding problematic observations, such as patients with zero survival time, then handling special "discharge-to-die" cases where patients are discharged but later die by recoding them as censored for recovery. It creates three key event time variables: `etime` (minimum of time to recovery and time to death), `estatus` (event status: 1=event occurred, 0=censored), and `etype2` (event type: 1=recovery, 2=death). Finally, it splits the cleaned data by treatment group to enable subsequent competing risks analysis.
+
+```{r}
+mydata_std <- prep_data_cif(
+  data             = raw,
+  ID               = "ID",
+  TimeToRecovery   = "TimeToRecovery",
+  TimeToDeath      = "TimeToDeath",
+  Recov_Censoring  = "RecoveryCensoringIndicator",
+  Death_Censoring  = "DeathCensoringIndicator",
+  Treatment        = "Treatment"
+)
+```
+
+
+The `do_cif_analysis` function performs three distinct analyses using different parameter combinations within the composite measure framework: Restricted Mean Time Gained(RMTG) focuses specifically on time gained through recovery, Restricted Mean Time Lost(RMTL) analysis focuses on time lost through death, and Net Benefit analysis calculates the net time gained by subtracting RMTL from RMTG. The `tau` parameter specifies the time horizon (e.g., `tau=15` calculates restricted mean times over the first 15 days), which determines the upper limit for integrating the cumulative incidence functions.
+
+Each analysis returns a 3×4 matrix containing estimates, confidence intervals, and p-values for both treatment groups and their difference, providing comprehensive statistical inference for all competing risk endpoints simultaneously.
+```{r}
+res_std <- do_cif_analysis(mydata_std, tau=15)
+
+res_std$RMGT
+
+res_std$RMLT
+
+res_std$Net
+```
+According to the results above, using the simulated example data, 
+From the RMGT table: Treatment group gained 0.68 more days of recovery time over 15 days (p = 0.47)
+RMLT: Treatment group lost 1.48 fewer days to death over 15 days (p = 0.25)
+Net Benefit: Treatment provides 0.76 net days of benefit over 15 days (p < 0.65)
+
+
+
+
+
+
+
