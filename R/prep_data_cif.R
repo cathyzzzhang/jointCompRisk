@@ -16,7 +16,7 @@
 #'     \item \code{Treatment}: Subset of \code{data.w} where \code{Treatment==1}.
 #'     \item \code{Control}: Subset of \code{data.w} where \code{Treatment==0}.
 #'   }
-#'
+#' @import survival
 #' @export
 prep_data_cif <- function(
     data,

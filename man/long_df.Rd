@@ -9,27 +9,35 @@ A data frame with variable rows per patient:
 \describe{
   \item{PersonID}{Patient identifier matching ID in main_df (character)}
   \item{OrdinalScore}{Severity score on 1-8 scale (numeric)}
-  \item{RelativeDay}{Study day (numeric) or "Baseline" (character)}
+  \item{RelativeDay}{Study day (numeric) starting from day 0 (baseline)}
 }
 }
 \source{
-Simulated data using random walk with boundaries
+Simulated data using treatment-specific random walk with boundaries
 }
 \usage{
 long_df
 }
 \description{
 Repeated measurements of ordinal severity scores over time for the same patients
-in the main_df dataset.
+in the main_df dataset, with treatment-specific trajectory patterns.
 }
 \details{
-Measurements are taken at scheduled visits: days 1, 2, 3, 4, 5, 7, 10, 14, 21, 28.
-The trajectory follows a random walk pattern around the baseline score.
+Measurements are taken at scheduled visits: days 0 (baseline), 1, 3, 5, 7, 10, 14, 18, 21, 25, 28.
+The trajectory follows treatment-specific probabilities: treatment patients have 45% improvement
+and 15% worsening probability per visit, while control patients have 30% improvement and 25%
+worsening probability, creating realistic differential clinical progression patterns.
 }
 \examples{
 data(long_df)
 head(long_df)
 # See data for first patient
-subset(long_df, PersonID == "DUMMY.01")
+subset(long_df, PersonID == "Patient_001")
+# Compare average scores by treatment
+library(dplyr)
+long_df \%>\%
+  left_join(main_df[,c("ID","Treatment")], by=c("PersonID"="ID")) \%>\%
+  group_by(Treatment) \%>\%
+  summarise(mean_score = mean(OrdinalScore))
 }
 \keyword{datasets}

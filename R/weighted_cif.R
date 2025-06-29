@@ -1,4 +1,7 @@
 #' @keywords internal
+#' @noRd
+#' @importFrom survival survfit Surv
+#' @importFrom dplyr %>% select all_of rename left_join arrange
 I <- function(x) as.numeric(x)
 
 w_surv <- function(data,t,eta,m){
@@ -13,7 +16,7 @@ w_surv <- function(data,t,eta,m){
     K_t[i] <- sum(I(data$wU<=t & data$etype==eta & data$D_status==1 & data$D_time<=surv_time[i]))/n
   }
   K_t <- c(0,K_t)
-  fit <- survfit(Surv(D_time,D_status) ~ 1, data=data)
+  fit <- survival::survfit(Surv(D_time,D_status) ~ 1, data=data)
   fit.time <- fit$time
   fit.surv <- fit$surv
   cif <- 0
@@ -31,7 +34,7 @@ w_surv <- function(data,t,eta,m){
 # function for calculating the aj term in Theorem 2
 var_est <- function(data, t, eta) {
   # Generate competing risks output
-  fit.c <- survfit(Surv(D_time, 1 - D_status) ~ 1, data = data)
+  fit.c <- survival::survfit(Surv(D_time, 1 - D_status) ~ 1, data = data)
   fit.ctime <- fit.c$time
   fit.csurv <- fit.c$surv
   cumhaz <- c(0, fit.c$cumhaz)

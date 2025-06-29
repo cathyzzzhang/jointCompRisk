@@ -17,8 +17,8 @@ library(survival)
 ```
 
 ```{r}
-raw <- read.csv("main.csv")
-long <- read.csv("long.csv")
+raw <- read.csv("main_df.csv")
+long <- read.csv("long_df.csv")
 ```
 
 ```{r}

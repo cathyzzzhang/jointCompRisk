@@ -1,3 +1,7 @@
+#' @importFrom survival survfit Surv
+#' @import survival
+#' @importFrom dplyr %>% select all_of rename left_join arrange
+
 auc.func <- function(table, start.time, tau){
   loc1 <- which(table[,1] >= start.time)[1]
   loc2 <- max(which(table[,1] <= tau))
@@ -15,7 +19,7 @@ auc.func <- function(table, start.time, tau){
 }
 
 auc.var.joint <- function(data.w, tau, a, b, c){
-  fit <- survfit(Surv(etime, estatus) ~ 1, etype=etype2, data=data.w)
+  fit <- survival::survfit(Surv(etime, estatus) ~ 1, etype=etype2, data=data.w)
   n.risk <- fit$n.risk[,1]
   n.event <- fit$n.event
   # Combine events 2 & 3 into 1st column => total events

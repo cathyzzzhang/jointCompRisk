@@ -29,13 +29,15 @@ All methods follow the framework of Wen, Wang & Hu (2023, Statistics in Medicine
 
 ## 2. Sample Data
 
-Throughout this vignette, we simulate a sample dataset that follows the structure of Adaptive COVID-19 Treatment Trials (ACTT), specifically generating a clinical trial dataset of 30 patients with competing risks survival data (recovery vs. death) and longitudinal ordinal severity scores (1-8 scale representing clinical status from mild to severe illness) measured at scheduled visits over a 30-day follow-up period.
-The details of the variables included in each of the dataset can be accessed in the help file of jointCompRisk package, following the code below. 
-
+Throughout this vignette, we simulate a sample dataset that follows the structure of Adaptive COVID-19 Treatment Trials (ACTT), specifically generating a clinical trial dataset of 150 patients with competing risks survival data (recovery vs. death) and longitudinal ordinal severity scores (1-8 scale representing clinical status from mild to severe illness) measured at scheduled visits over a 30-day follow-up period. The simulation incorporates realistic treatment effects where the treatment group experiences 1.5× faster recovery times, 1.8× improved survival, and better clinical trajectories compared to control, enabling demonstration of the package's ability to detect significant treatment benefits across both standard and weighted competing risks analyses. The details of the variables included in each dataset can be accessed in the help file of the jointCompRisk package, following the code below.
 
 The `main_df` contains one row per participant with baseline demographics, treatment assignment, censoring indicators, and time-to-event outcomes (`TimeToRecovery`, `TimeToDeath`). The `long_df` is in long format with one row per visit per participant. Together, these datasets demonstrate (i) data preparation techniques, (ii) cumulative incidence estimation, and (iii) joint modeling of how baseline characteristics and evolving severity scores predict competing outcomes.
 ```{r}
 library(jointCompRisk)
+library(survival)
+
+main_df <- read.csv("main_df.csv")
+long_df <- read.csv("long_df.csv")
 ?main_df
 ?long_df
 ```
@@ -44,6 +46,7 @@ library(jointCompRisk)
 ```{r}
 head(main_df)
 ```
+
 ```{r}
 head(long_df)
 ```
@@ -79,7 +82,7 @@ The function `prep_data_cif()` performs essential data preprocessing by first ex
 
 ```{r}
 mydata_std <- prep_data_cif(
-  data             = raw,
+  data             = main_df,
   ID               = "ID",
   TimeToRecovery   = "TimeToRecovery",
   TimeToDeath      = "TimeToDeath",
@@ -103,13 +106,64 @@ res_std$RMLT
 res_std$Net
 ```
 According to the results above, using the simulated example data, 
-From the RMGT table: Treatment group gained 0.68 more days of recovery time over 15 days (p = 0.47)
-RMLT: Treatment group lost 1.48 fewer days to death over 15 days (p = 0.25)
-Net Benefit: Treatment provides 0.76 net days of benefit over 15 days (p < 0.65)
+From the RMTG table: Treatment group gained 2.59 more days of recovery time over 15 days (3.76 vs 1.17 days, p < 0.001)
+RMTL: Treatment group lost 1.66 fewer days to death over 15 days (1.08 vs 2.74 days, p = 0.004)
+Net Benefit: Treatment provides 4.25 net days of benefit over 15 days (2.68 vs -1.58 days, p < 0.001)
+
+The improved simulation demonstrates clear treatment efficacy across all endpoints. The treatment group shows substantially more time gained through recovery, significantly less time lost to death, and a strong positive net benefit compared to control. The control group's negative net benefit (-1.58 days) indicates that time lost to death exceeded time gained through recovery, while the treatment group achieved a positive net benefit (+2.68 days), highlighting the treatment's ability to shift the balance toward favorable outcomes. All differences are statistically significant, confirming the package's ability to detect meaningful treatment effects when they exist.
+
+## Part 2: Weighted CIF Analysis:
+Weighted analysis accounts for disease severity changes over time, providing more nuanced insights when patient condition varies during follow-up.
+
+The function merges main time-to-event data with longitudinal severity measurements to create weighted analysis datasets. For each patient, it calculates time spent in different severity states (in example it would be scores from 4 to 7) and applies clinical weights that reflect prognosis - death weights assign higher values to more severe states indicating worse outcomes, while discharge weights assign higher values to better states indicating favorable outcomes. This produces separate datasets for death and discharge analyses, enabling the computation of weighted restricted mean lifetime (WRMLT) and weighted restricted mean gain time (WRMGT) that emphasize clinically relevant states for each outcome.
+
+The clinical weighting system uses inverse priorities for death versus discharge outcomes, where death weights increase with severity (State 4: 2.0, State 5: 1.5, State 6: 1.0, State 7: 0.5) to emphasize time spent in concerning states, while discharge weights decrease with severity (State 4: 0.5, State 5: 1.0, State 6: 1.5, State 7: 2.0) to emphasize time spent in favorable recovery states. Weights can also be customized based on stakeholder interests - hospital administrators might prioritize shorter stays regardless of outcome, while patients and families might weight quality of life differently than clinical severity scores.
+```{r}
+prepped_w <- prep_data_weighted_cif(
+  data_main = main_df,
+  data_long = long_df,
+
+  wID_main              = "ID",
+  wTimeToRecovery_main  = "TimeToRecovery",
+  wTimeToDeath_main     = "TimeToDeath",
+  wRecov_Censoring_main = "RecoveryCensoringIndicator",
+  wDeath_Censoring_main = "DeathCensoringIndicator",
+  wTreatment_main       = "Treatment",
+  wBaselineScore_main   = "BaselineScore",
+  
+  wID_long              = "PersonID",
+  wADY_long             = "RelativeDay",
+  wScore_long           = "OrdinalScore",
+
+  wStates_death         = c(4,5,6,7), 
+  wWeights_death        = c(2,1.5,1,0.5),
+  wStates_discharge     = c(4,5,6,7),
+  wWeights_discharge    = c(0.5,1,1.5,2)
+)
+```
 
 
+The function `do_weighted_cif_analysis()`performs weighted competing risks analysis using the datasets prepared by prep_data_weighted_cif(), computing Weighted RMTL (death analysis with severity-weighted time) and Weighted RMGT (discharge analysis with recovery-weighted time) at the specified time horizon tau. Unlike standard analysis that treats all time equally, this approach emphasizes clinically relevant periods - time spent in severe states before death receives higher weight in WRMTL calculations, while time spent in better states before discharge receives higher weight in WRMGT calculations. The function returns 3×4 matrices for both weighted measures, containing estimates, confidence intervals, and p-values that reflect the severity-adjustsed treatment effects on competing outcomes.
 
+Analyzing multiple time horizons provides insights into treatment effects over time by varying the tau parameter, which sets the upper time limit for calculating restricted mean times. For example, tau=15 analyzes only the first 15 days post-treatment, while tau=29 extends the analysis to 29 days, potentially revealing whether treatment benefits are immediate, delayed, or sustained. Different time horizons may show varying effect sizes - a treatment might show strong early benefits at 15 days but diminishing effects at longer follow-up periods, or conversely, benefits that emerge only with extended observation.
+```{r}
+# Run Weighted CIF analysis at tau=15
+res_w15 <- do_weighted_cif_analysis(prepped_w, tau=15)
+res_w15$WRMLT
+res_w15$WRMGT
 
+# Run Weighted CIF analysis at tau=29
+res_w29 <- do_weighted_cif_analysis(prepped_w, tau=29)
+res_w29$WRMLT
+res_w29$WRMGT
+```
+At 15 days:
+WRMTL: Treatment group lost 1.34 fewer severity-weighted days (1.73 vs 3.08 days, p = 0.124)
+WRMGT: Treatment group gained 2.88 more recovery-weighted days (3.83 vs 0.95 days, p < 0.001)
 
+At 29 days:
+WRMTL: Treatment group lost 3.40 fewer severity-weighted days (5.09 vs 8.49 days, p = 0.074)
+WRMGT: Treatment group gained 7.10 more recovery-weighted days (10.56 vs 3.45 days, p < 0.001)
 
+The weighted analysis demonstrates strong treatment benefits that intensify over time. Treatment consistently reduces severity-weighted time lost to death and dramatically increases recovery-weighted time gained. The WRMGT benefits are highly significant at both time points, while WRMTL benefits approach significance at 29 days (p = 0.074), suggesting that longer follow-up reveals clearer mortality benefits. The increasing effect sizes from 15 to 29 days (WRMGT: 2.88 → 7.10 days; WRMTL: 1.34 → 3.40 days) indicate cumulative treatment benefits that become more pronounced with extended observation, highlighting the value of severity-adjusted competing risks analysis.
 
