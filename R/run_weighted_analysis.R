@@ -5,7 +5,8 @@
 #'
 #' @param prepped A list returned by \code{prep_data_weighted_cif()}.
 #' @param tau Numeric time horizon (e.g., 15 or 29).
-#'
+#' @importFrom survival survfit Surv
+#' @importFrom stats var cov pnorm
 #' @details
 #' - Weighted RMLT uses \code{eta=2}.
 #' - Weighted RMGT uses \code{eta=1}.

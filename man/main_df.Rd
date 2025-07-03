@@ -3,7 +3,10 @@
 \docType{data}
 \name{main_df}
 \alias{main_df}
-\title{Main Competing Risks Dataset}
+\title{Main Competing Risks Dataset
+Simulated clinical trial data with competing risks survival outcomes.
+This dataset follows the structure of Adaptive COVID-19 Treatment Trials (ACTT)
+with built-in treatment effects for demonstration purposes.}
 \format{
 A data frame with 150 rows and 7 variables:
 \describe{
@@ -23,6 +26,7 @@ Simulated data based on Weibull distributions with treatment-specific parameters
 main_df
 }
 \description{
+Main Competing Risks Dataset
 Simulated clinical trial data with competing risks survival outcomes.
 This dataset follows the structure of Adaptive COVID-19 Treatment Trials (ACTT)
 with built-in treatment effects for demonstration purposes.

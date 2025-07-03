@@ -1,6 +1,7 @@
 #' @title Run Standard CIF Analysis
 #' @description Given a prepped data list from \code{\link{prep_data_cif}}, run the standard CIF analysis.
-#'
+#' @importFrom survival survfit Surv
+#' @importFrom stats var cov pnorm
 #' @param prepped A list returned by \code{prep_data_cif()}, containing \code{Treatment} and \code{Control}.
 #' @param tau Numeric, time horizon (e.g. 15 or 29).
 #'

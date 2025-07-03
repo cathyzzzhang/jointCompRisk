@@ -35,7 +35,7 @@
 #'     \item \code{Treatment.discharge} and \code{Control.discharge}: Subsets for Weighted RMGT (discharge).
 #'   }
 #' @export
-prep_data_weighted_cif <- function(
+prep_data_weighted_cif2 <- function(
     data_main,
     data_long,
 
@@ -56,9 +56,19 @@ prep_data_weighted_cif <- function(
     wStates_discharge     = c(4,5,6,7),
     wWeights_discharge    = c(0.5,1,1.5,2)
 ){
+
+  # Quick validation
+  if (length(wWeights_death) != length(wStates_death)) {
+    stop("wWeights_death must be same length as wStates_death")
+  }
+  if (length(wWeights_discharge) != length(wStates_discharge)) {
+    stop("wWeights_discharge must be same length as wStates_discharge")
+  }
+
   # ============================
   # Part A) Exclude zero survival, missing baseline, discharge-to-die
   # ============================
+
   # 1) Exclude zero survival time
   cn.t0 <- which(
     data_main[[wTimeToRecovery_main]] == 0 |
@@ -118,6 +128,7 @@ prep_data_weighted_cif <- function(
   # ============================
   # Part B) Merge with long data
   # ============================
+
   # convert ID col to character
   data_long[[wID_long]] <- as.character(data_long[[wID_long]])
 
@@ -151,8 +162,9 @@ prep_data_weighted_cif <- function(
   colnames(data.l) <- c("USUBJID","D_time","D_status","resp_time","resp")
 
   # ============================
-  # Part C) Loop to compute weighted times
+  # Part C) FLEXIBLE VERSION: Replace hardcoded 4:7 with general lookup
   # ============================
+
   idList <- unique(data.l$USUBJID)
   wU <- data.frame(
     USUBJID = idList,
@@ -164,39 +176,53 @@ prep_data_weighted_cif <- function(
   for(i in seq_along(idList)){
     data.id <- data.l[data.l$USUBJID == idList[i], ]
 
-    # "count" for states 4,5,6,7
-    count <- rep(0, 4)  # index => [1]=state4, [2]=state5, [3]=state6, [4]=state7
+    # FLEXIBLE: Initialize count arrays for any state range
+    count_death <- rep(0, length(wStates_death))
+    count_discharge <- rep(0, length(wStates_discharge))
 
     if(nrow(data.id) == 1){
-      # single row => add 1 day
-      count[data.id$resp - 3] <- 1
+      # ORIGINAL LOGIC: single row => add 1 day
+      current_score <- data.id$resp[1]
+
+      # FLEXIBLE: Use match() instead of hardcoded arithmetic
+      death_idx <- match(current_score, wStates_death)
+      if (!is.na(death_idx)) {
+        count_death[death_idx] <- 1
+      }
+
+      discharge_idx <- match(current_score, wStates_discharge)
+      if (!is.na(discharge_idx)) {
+        count_discharge[discharge_idx] <- 1
+      }
+
     } else {
-      # multi row => sum intervals
+      # ORIGINAL LOGIC: multi row => sum intervals (excluding final stretch)
       for(j in seq_len(nrow(data.id) - 1)){
-        count[data.id$resp[j] - 3] <-
-          count[data.id$resp[j] - 3] +
-          data.id$resp_time[j+1] - data.id$resp_time[j]
+        current_score <- data.id$resp[j]
+        interval_length <- data.id$resp_time[j+1] - data.id$resp_time[j]
+
+        # FLEXIBLE: Use match() instead of hardcoded arithmetic
+        death_idx <- match(current_score, wStates_death)
+        if (!is.na(death_idx)) {
+          count_death[death_idx] <- count_death[death_idx] + interval_length
+        }
+
+        discharge_idx <- match(current_score, wStates_discharge)
+        if (!is.na(discharge_idx)) {
+          count_discharge[discharge_idx] <- count_discharge[discharge_idx] + interval_length
+        }
       }
     }
 
-    # Weighted time for death
-    wU$death_w[i] <-
-      wWeights_death[1] * count[1] +
-      wWeights_death[2] * count[2] +
-      wWeights_death[3] * count[3] +
-      wWeights_death[4] * count[4]
-
-    # Weighted time for discharge
-    wU$disc_w[i] <-
-      wWeights_discharge[1] * count[1] +
-      wWeights_discharge[2] * count[2] +
-      wWeights_discharge[3] * count[3] +
-      wWeights_discharge[4] * count[4]
+    # ORIGINAL LOGIC: Direct weighted sum
+    wU$death_w[i] <- sum(wWeights_death * count_death)
+    wU$disc_w[i] <- sum(wWeights_discharge * count_discharge)
   }
 
   # ============================
-  # Part D) Merge wU back, now separate (Treatment vs Control) for death and discharge
+  # Part D) Merge wU back, create treatment/control subsets
   # ============================
+
   data.ws.death <- dplyr::left_join(
     data.w, wU[, c("USUBJID","death_w")], by="USUBJID"
   ) %>%
@@ -239,3 +265,111 @@ prep_data_weighted_cif <- function(
   )
 }
 
+# ============================
+# Analysis wrapper function
+# ============================
+
+do_weighted_cif_analysis <- function(
+    data_main,
+    data_long,
+
+    # Data preparation parameters
+    wID_main              = "USUBJID",
+    wTimeToRecovery_main  = "TTRECOV",
+    wTimeToDeath_main     = "TTDEATH",
+    wRecov_Censoring_main = "RECCNSR",
+    wDeath_Censoring_main = "DTHCNSR",
+    wBaselineScore_main   = "ordscr_bs",
+    wTreatment_main       = "trt",
+    wID_long              = "USUBJID",
+    wADY_long             = "ADYC",
+    wScore_long           = "ORDSCOR",
+
+    # Flexible state and weight parameters
+    wStates_death         = c(4,5,6,7),
+    wWeights_death        = c(2,1.5,1,0.5),
+    wStates_discharge     = c(4,5,6,7),
+    wWeights_discharge    = c(0.5,1,1.5,2),
+
+    # Analysis parameters
+    tau                   = c(15, 29)
+){
+
+  # Prepare data
+  prep_result <- prep_data_weighted_cif2(
+    data_main = data_main,
+    data_long = data_long,
+    wID_main = wID_main,
+    wTimeToRecovery_main = wTimeToRecovery_main,
+    wTimeToDeath_main = wTimeToDeath_main,
+    wRecov_Censoring_main = wRecov_Censoring_main,
+    wDeath_Censoring_main = wDeath_Censoring_main,
+    wBaselineScore_main = wBaselineScore_main,
+    wTreatment_main = wTreatment_main,
+    wID_long = wID_long,
+    wADY_long = wADY_long,
+    wScore_long = wScore_long,
+    wStates_death = wStates_death,
+    wWeights_death = wWeights_death,
+    wStates_discharge = wStates_discharge,
+    wWeights_discharge = wWeights_discharge
+  )
+
+  # Run analysis for each tau
+  results <- lapply(tau, function(tt) {
+    list(
+      WRMLT = table_weighted(prep_result$Treatment.death,
+                             prep_result$Control.death,
+                             eta = 2, tau = tt),  # eta=2 for death
+      WRMGT = table_weighted(prep_result$Treatment.discharge,
+                             prep_result$Control.discharge,
+                             eta = 1, tau = tt)   # eta=1 for recovery/discharge
+    )
+  })
+
+  # Add tau labels for clarity
+  names(results) <- paste0("tau_", tau)
+
+  return(results)
+}
+
+# ============================
+# Helper function to create common weight patterns
+# ============================
+
+create_weights <- function(states, pattern = "decreasing") {
+  n <- length(states)
+  weights <- switch(pattern,
+                    "decreasing" = seq(2, 0.5, length.out = n),        # Worse states get higher weight
+                    "increasing" = seq(0.5, 2, length.out = n),        # Better states get higher weight
+                    "equal" = rep(1, n),                               # All states equal weight
+                    "binary_high_low" = if(n == 2) c(2, 0.5) else stop("binary_high_low only for 2 states"),
+                    "binary_low_high" = if(n == 2) c(0.5, 2) else stop("binary_low_high only for 2 states"),
+                    stop("Unknown pattern. Use: decreasing, increasing, equal, binary_high_low, binary_low_high")
+  )
+
+  return(weights)
+}
+
+###
+# prepped_w <- prep_data_weighted_cif2(
+#   data_main = main_df,
+#   data_long = long_df,
+#
+#   wID_main              = "ID",
+#   wTimeToRecovery_main  = "TimeToRecovery",
+#   wTimeToDeath_main     = "TimeToDeath",
+#   wRecov_Censoring_main = "RecoveryCensoringIndicator",
+#   wDeath_Censoring_main = "DeathCensoringIndicator",
+#   wTreatment_main       = "Treatment",
+#   wBaselineScore_main   = "BaselineScore",
+#
+#   wID_long              = "PersonID",
+#   wADY_long             = "RelativeDay",
+#   wScore_long           = "OrdinalScore",
+#
+#   wStates_death         = c(4,5,6,7),
+#   wWeights_death        = c(2,1.5,1,0.5),
+#   wStates_discharge     = c(4,5,6,7),
+#   wWeights_discharge    = c(0.5,1,1.5,2)
+# )

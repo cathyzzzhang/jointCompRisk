@@ -1,6 +1,7 @@
 #' @keywords internal
 #' @noRd
 #' @importFrom survival survfit Surv
+#' @importFrom stats var cov pnorm
 #' @importFrom dplyr %>% select all_of rename left_join arrange
 I <- function(x) as.numeric(x)
 

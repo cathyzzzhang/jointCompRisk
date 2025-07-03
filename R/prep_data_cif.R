@@ -1,6 +1,7 @@
 #' @title Prepare Data for Standard CIF
 #' @description Cleans and prepares a single dataset for standard (competing risks) CIF analysis.
-#'
+#' @importFrom survival survfit Surv
+#' @importFrom stats var cov pnorm
 #' @param data A data frame with columns for ID, time to recovery, time to death,
 #'   recovery censor, death censor, and treatment indicator.
 #' @param ID Name of the patient ID column. Default is "USUBJID".

@@ -1,5 +1,4 @@
 #' Main Competing Risks Dataset
-#'
 #' Simulated clinical trial data with competing risks survival outcomes.
 #' This dataset follows the structure of Adaptive COVID-19 Treatment Trials (ACTT)
 #' with built-in treatment effects for demonstration purposes.

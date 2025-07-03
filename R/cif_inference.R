@@ -1,4 +1,5 @@
 #' @importFrom survival survfit Surv
+#' @importFrom stats var cov pnorm
 #' @import survival
 #' @importFrom dplyr %>% select all_of rename left_join arrange
 
