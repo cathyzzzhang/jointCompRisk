@@ -28,7 +28,7 @@ In clinical studies, patients often face multiple mutually exclusive outcomes of
 4. Methods validated following Wen, Wang & Hu (2023, Statistics in Medicine)
 
 ## 2. Clinical Applications and Rationale
-**Hospital-based Treatment Studies**: atients either recover (treatment success, resource availability for new patients) or experience adverse outcomes including death (treatment failure).
+**Hospital-based Treatment Studies**: patients either recover (treatment success, resource availability for new patients) or experience adverse outcomes including death (treatment failure).
 
 **Cancer Research**: Multiple disease-related events (local recurrence, distant metastasis, secondary cancers, death) may respond differently to treatment interventions.
 
