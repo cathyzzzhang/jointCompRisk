@@ -18,7 +18,7 @@ bibliography: refs.bib
 
 ---
 
-## 1. Introduction
+# Introduction
 In clinical studies, patients often face multiple mutually exclusive outcomes of equal clinical importance. Traditional survival analysis focusing on a single endpoint can provide incomplete insights, particularly when competing events like recovery and death, disease-specific versus non-disease mortality, or treatment success versus treatment-related toxicity occur simultaneously. This `jointCompRisk` package implements advanced methods for analyzing competing risks data with joint inference capabilities, providing both traditional competing risks analysis and novel severity-weighted approaches that incorporate longitudinal ordinal severity scores.
 
 **Key Features**:
@@ -27,7 +27,7 @@ In clinical studies, patients often face multiple mutually exclusive outcomes of
 3. Results in clinically meaningful time units (days gained or lost, or other time units)
 4. Methods validated following Wen, Wang & Hu (2023, Statistics in Medicine)
 
-## 2. Clinical Applications and Rationale
+# Clinical Applications and Rationale
 **Hospital-based Treatment Studies**: patients either recover (treatment success, resource availability for new patients) or experience adverse outcomes including death (treatment failure).
 
 **Cancer Research**: Multiple disease-related events (local recurrence, distant metastasis, secondary cancers, death) may respond differently to treatment interventions.
@@ -36,7 +36,7 @@ In clinical studies, patients often face multiple mutually exclusive outcomes of
 
 The package enables simultaneous analysis of multiple competing outcomes while respecting the clinical importance of each endpoint.
 
-## 3. Theoretical Background
+# Theoretical Background
 ### Cumulative Incidence Functions
 The **cumulative incidence function (CIF)** describes the probability of experiencing a specific event type over time while accounting for competing events. Unlike standard survival analysis that treats competing events as censored, CIF provides realistic estimates by properly incorporating all competing risks.
 
@@ -89,7 +89,7 @@ $$
 $$  
 where $w_k$ represents clinical importance weights (positive for beneficial events, negative for adverse events).
 
-## 4. Installation and Data Requirements
+# Installation and Data Requirements
 **Load the package**
 ```{r}
 # Install package
@@ -103,7 +103,7 @@ Throughout this vignette, we use simulated data that follows the structure of Ad
 2. Severity scores: 1-8 scale (mild to severe illness) measured at scheduled visits
 3. Realistic treatment effects demonstrating significant benefits across standard and weighted analyses
 
-### Load the sample data
+## Load the sample data
 ```{r}
 #Sample datasets included with package
 main_df <- read.csv("main_df.csv")
@@ -139,10 +139,10 @@ As well as we need an additional longitudinal dataset with
 2.	Time Point: Days since treatment starts
 3.	Severity Score: Disease severity score at each time point
 
-### Part 1: Standard CIF Analysis:
+## Part 1: Standard CIF Analysis:
 Standard CIF analysis provides traditional competing risks analysis with joint inference capabilities.
 
-#### Step 1: Data preparation 
+### Step 1: Data preparation 
 
 The prep_data_cif() function preprocesses your data by excluding patients with zero survival time, handling "discharge-to-die" cases (recoded as censored for recovery), creating event time variables (etime, estatus, etype2), and splitting data by treatment group.
 
@@ -176,11 +176,11 @@ From the RMTG table: Treatment group gained 2.59 more days of recovery time over
 RMTL: Treatment group lost 1.66 fewer days to death over 15 days (1.08 vs 2.74 days, p = 0.004)
 Net Benefit: Treatment provides 4.25 net days of benefit over 15 days (2.68 vs -1.58 days, p < 0.001)
 
-### Part 2: Weighted CIF Analysis:
+## Part 2: Weighted CIF Analysis:
 Weighted analysis incorporates disease severity changes over time, providing insights when patient conditions vary during follow-up.
 
 
-#### Step 1: Data Preparation
+### Step 1: Data Preparation
 
 The function merges time-to-event data with longitudinal severity measurements, calculating time spent in different severity states and applying clinical weights. Severity scores are flexible (example uses scores 4-7, but any range can be used to meet your dataset's needs) with matching weights required for each state. In practice, death weights often increase with severity (State 4: 2.0, State 5: 1.5, State 6: 1.0, State 7: 0.5) to emphasize concerning states, while discharge weights often decrease with severity (State 4: 0.5, State 5: 1.0, State 6: 1.5, State 7: 2.0) to emphasize favorable recovery states. This produces separate datasets enabling computation of weighted restricted mean lifetime (WRMLT) and weighted restricted mean gain time (WRMGT). Weights can also be customized based on stakeholder priorities—hospital administrators might prioritize shorter stays, while patients might weight quality of life differently than clinical severity.
 
@@ -209,7 +209,7 @@ prepped_w <- prep_data_weighted_cif2(
 ```
 
 
-#### Step 2: Analysis
+### Step 2: Analysis
 The function `do_weighted_cif_analysis()`performs weighted competing risks analysis using the datasets prepared by prep_data_weighted_cif(), computing Weighted RMTL (death analysis with severity-weighted time) and Weighted RMGT (discharge analysis with recovery-weighted time) at the specified time horizon tau. Unlike standard analysis that treats all time equally, this approach emphasizes clinically relevant periods - time spent in severe states before death receives higher weight in WRMTL calculations, while time spent in better states before discharge receives higher weight in WRMGT calculations. The function returns 3×4 matrices for both weighted measures, containing estimates, confidence intervals, and p-values that reflect the severity-adjustsed treatment effects on competing outcomes.
 
 Different `tau` values reveal treatment effects over time: short-term (e.g., tau=15) shows immediate treatment effects, long-term (e.g., tau=29) reveals sustained or delayed benefits, and multiple horizons demonstrate the evolution of treatment effects. Treatment benefits may be immediate, delayed, or diminishing, so analyzing multiple time points provides comprehensive insights.
